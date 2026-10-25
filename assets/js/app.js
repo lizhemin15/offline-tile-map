@@ -117,6 +117,15 @@
 
   function normalizeConfig(raw) {
     var cfg = deepMerge(DEFAULTS, raw || {});
+    if (!isPlainObject(cfg.tile)) {
+      cfg.tile = {};
+    }
+    if (!isPlainObject(cfg.view)) {
+      cfg.view = {};
+    }
+    if (!isPlainObject(cfg.ui)) {
+      cfg.ui = {};
+    }
     var tile = cfg.tile;
 
     tile.url = typeof tile.url === 'string' ? tile.url.trim() : '';
@@ -748,11 +757,10 @@
 
   function boot() {
     state.cfg = null;
-    var raw = deepMerge(DEFAULTS, window.MAP_CONFIG || {});
-    applyQuery(raw, window.location.search);
-
     var cfg;
     try {
+      var raw = deepMerge(DEFAULTS, window.MAP_CONFIG || {});
+      applyQuery(raw, window.location.search);
       cfg = normalizeConfig(raw);
     } catch (err) {
       renderChrome(deepMerge(DEFAULTS, {}));
