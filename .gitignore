@@ -1,0 +1,12 @@
+# 依赖
+node_modules/
+__pycache__/
+*.pyc
+
+# 测试产物
+tests/artifacts/
+tests/screenshots/
+
+# 系统文件
+.DS_Store
+Thumbs.db

@@ -1,0 +1,8 @@
+.git
+.github
+node_modules
+tests
+docs
+*.md
+deploy/docker-compose.yml
+.gitignore

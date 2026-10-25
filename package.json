@@ -1,0 +1,16 @@
+{
+  "name": "offline-tile-map",
+  "version": "1.0.0",
+  "private": true,
+  "description": "完全离线可部署的 XYZ 瓦片地图查看器（Leaflet / EPSG:3857）",
+  "scripts": {
+    "serve": "node tools/static_server.mjs --port 8080",
+    "tiles": "python3 tools/dev_tile_server.py --port 12345",
+    "test": "node --test tests/coord.test.mjs",
+    "test:e2e": "node tests/e2e.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0"
+  },
+  "license": "MIT"
+}

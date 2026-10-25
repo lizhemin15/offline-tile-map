@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>内网离线地图</title>
+<link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg">
+<link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M9 19l-6 2V5l6-2 6 2 6-2v16l-6 2-6-2z"/><path d="M9 3v16M15 5v16"/></svg>
+      </span>
+      <div class="brand-text">
+        <h1 id="app-title">内网离线地图</h1>
+        <p id="app-subtitle">EPSG:3857 · XYZ 瓦片</p>
+      </div>
+    </div>
+
+    <nav class="toolbar" aria-label="地图操作">
+      <button class="btn" id="btn-locate" type="button" title="定位（快捷键 L）">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+        <span>定位</span>
+      </button>
+      <button class="btn" id="btn-reset" type="button" title="回到初始视图（快捷键 R）">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+        <span>复位</span>
+      </button>
+      <button class="btn" id="btn-fullscreen" type="button" title="全屏（快捷键 F）">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+        <span>全屏</span>
+      </button>
+      <button class="btn" id="btn-help" type="button" title="使用说明（快捷键 ?）">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 115 0c0 1.7-2.5 2-2.5 3.5"/><path d="M12 17h.01"/></svg>
+        <span>帮助</span>
+      </button>
+    </nav>
+  </header>
+
+  <main class="map-wrap">
+    <div id="map" role="application" aria-label="地图视图"></div>
+
+    <div class="hud" id="hud" hidden>
+      <div class="hud-main">
+        <div class="hud-cell">
+          <span class="hud-k">经度</span>
+          <span class="hud-v" id="hud-lon">—</span>
+        </div>
+        <div class="hud-cell">
+          <span class="hud-k">纬度</span>
+          <span class="hud-v" id="hud-lat">—</span>
+        </div>
+        <div class="hud-cell hud-tile">
+          <span class="hud-k">瓦片 z / x / y</span>
+          <span class="hud-v" id="hud-tile">—</span>
+        </div>
+      </div>
+      <button class="hud-copy" id="hud-copy" type="button" title="复制当前坐标">复制坐标</button>
+    </div>
+
+    <div class="loading" id="loading">
+      <span class="spinner" aria-hidden="true"></span>
+      <span>正在加载瓦片…</span>
+    </div>
+
+    <div class="banner" id="banner" role="status" hidden>
+      <span class="banner-icon" aria-hidden="true">!</span>
+      <span class="banner-text" id="banner-text"></span>
+      <button class="banner-btn" id="banner-retry" type="button">重试</button>
+      <button class="banner-close" id="banner-close" type="button" aria-label="关闭提示">×</button>
+    </div>
+
+    <div class="fatal" id="fatal" hidden>
+      <h2>地图配置有误</h2>
+      <p class="fatal-text" id="fatal-text"></p>
+      <p class="fatal-hint">请检查 <code>config.js</code> 中的 <code>tile.url</code>：它必须包含 <code>{z}</code>、<code>{x}</code>、<code>{y}</code> 三个占位符。修改后刷新页面即可。</p>
+    </div>
+
+    <noscript>
+      <div class="fatal">
+        <h2>需要启用 JavaScript</h2>
+        <p class="fatal-text">本页面是纯前端地图，请允许浏览器运行 JavaScript。</p>
+      </div>
+    </noscript>
+  </main>
+</div>
+
+<dialog id="locate-dialog" class="dialog">
+  <form id="locate-form" novalidate>
+    <h2>定位</h2>
+    <label class="field">
+      <span>经纬度或瓦片编号</span>
+      <input id="locate-input" type="text" placeholder="116.3912, 39.9075　或　5/26/12" autocomplete="off" spellcheck="false">
+    </label>
+    <label class="field">
+      <span>缩放级别（可选）</span>
+      <input id="locate-zoom" type="number" min="0" max="24" step="1" placeholder="保持当前级别">
+    </label>
+    <p class="dialog-error" id="locate-error" hidden></p>
+    <p class="dialog-hint">经纬度格式为 <code>经度, 纬度</code>（十进制度）；也支持 <code>z/x/y</code> 瓦片编号。纬度在前时会在合法范围内自动识别。</p>
+    <div class="dialog-actions">
+      <button class="btn btn-ghost" id="locate-cancel" type="button">取消</button>
+      <button class="btn btn-primary" id="locate-go" type="submit">跳转</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="help-dialog" class="dialog dialog-wide">
+  <div class="dialog-body">
+    <div class="dialog-head">
+      <h2>使用说明</h2>
+      <button class="icon-btn" id="help-close" type="button" aria-label="关闭">×</button>
+    </div>
+
+    <div class="help-section">
+      <h3>当前瓦片服务</h3>
+      <dl class="kv">
+        <dt>地址模板</dt><dd><code id="help-url">—</code></dd>
+        <dt>投影 / 方案</dt><dd id="help-crs">EPSG:3857 · XYZ</dd>
+        <dt>瓦片尺寸</dt><dd id="help-tilesize">256 × 256</dd>
+        <dt>缩放级别</dt><dd id="help-zoom">0 – 11</dd>
+        <dt>初始视图</dt><dd id="help-view">—</dd>
+      </dl>
+    </div>
+
+    <div class="help-section">
+      <h3>操作</h3>
+      <ul class="help-list">
+        <li><b>拖动</b> 平移，<b>滚轮 / 双击</b> 缩放；地图获得焦点后可用方向键平移。</li>
+        <li><b>点击地图</b> 放置标记，弹窗中可复制该点经纬度与瓦片编号。</li>
+        <li><b>定位</b> 支持 <code>116.3912, 39.9075</code> 或 <code>z/x/y</code>；<b>复位</b> 回到初始视图。</li>
+        <li>底部读数随鼠标移动实时更新；点击 <b>复制坐标</b> 复制光标位置。</li>
+      </ul>
+    </div>
+
+    <div class="help-section">
+      <h3>快捷键</h3>
+      <dl class="kv">
+        <dt><kbd>L</kbd></dt><dd>打开定位</dd>
+        <dt><kbd>R</kbd></dt><dd>回到初始视图</dd>
+        <dt><kbd>F</kbd></dt><dd>全屏切换</dd>
+        <dt><kbd>?</kbd></dt><dd>打开本说明</dd>
+        <dt><kbd>Esc</kbd></dt><dd>关闭弹窗</dd>
+      </dl>
+    </div>
+
+    <p class="help-foot">完全离线运行：页面不加载任何 CDN、外部字体或第三方脚本。瓦片请由内网服务提供。</p>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="assets/vendor/leaflet/leaflet.js"></script>
+<script src="assets/js/coord.js"></script>
+<script src="config.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

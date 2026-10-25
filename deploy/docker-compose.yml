@@ -1,0 +1,10 @@
+services:
+  map:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: offline-tile-map:latest
+    container_name: offline-tile-map
+    ports:
+      - "8080:80"
+    restart: unless-stopped
